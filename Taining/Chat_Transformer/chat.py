@@ -1,0 +1,23 @@
+
+# Replace with your Hugging Face API token
+# api_token = ""
+
+from huggingface_hub import InferenceClient
+
+client = InferenceClient(api_key="")
+
+messages = [
+	{ "role": "user", "content": "Hi" }
+]
+
+stream = client.chat.completions.create(
+    model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", 
+	messages=messages, 
+	temperature=0.5,
+	max_tokens=2048,
+	top_p=0.7,
+	stream=True
+)
+
+for chunk in stream:
+    print(chunk.choices[0].delta.content)
