@@ -420,12 +420,12 @@ insert into Users (users_id, banned, role) values ('13', 'No', 'driver')
 	And ( request_at > '2013-09-29' AND request_at < '2013-10-04')
 
 
-	SELECT  Distinct request_at as Day, 
+	SELECT  request_at as Day, 
 		Cast( 
 				Sum( Case When status != 'Completed' Then 1.00 Else 0.00 End ) 
 				Over(Partition By request_at) 
 				/ 
-				Count(request_at)
+				Count(request_at) Over(Partition By request_at)
 			as decimal (10,2))
 		 as [Cancellation Rate]		
 	FROM Trips t
@@ -658,3 +658,67 @@ SELECT
     Brand
 FROM cte2
 WHERE rn = 1;
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+with main(City,Amount)as( 
+
+		select 'Salem', 1000 UNION ALL
+		select 'Salem', 1000 UNION ALL
+		select 'Salem', 4000 UNION ALL
+		select 'CHN', 3000 UNION ALL
+		select 'Chn', 2000 
+	)
+SELECT city, sum(Amount) Over (Partition by city ) 
+FROM main
+---------------------------------------------------------------------
+CREATE TABLE course_completions (
+    user_id INT,
+    course_id INT,
+    course_name VARCHAR(100),
+    completion_date DATE,
+    course_rating Decimal (5,2)
+)
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '101', 'Python Basics', '2024-01-05', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '102', 'SQL Fundamentals', '2024-02-10', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '103', 'JavaScript', '2024-03-15', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '104', 'React Basics', '2024-04-20', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '105', 'Node.js', '2024-05-25', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('1', '106', 'Docker', '2024-06-30', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('2', '101', 'Python Basics', '2024-01-08', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('2', '104', 'React Basics', '2024-02-14', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('2', '105', 'Node.js', '2024-03-20', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('2', '106', 'Docker', '2024-04-25', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('2', '107', 'AWS Fundamentals', '2024-05-30', '4')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('3', '101', 'Python Basics', '2024-01-10', '3')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('3', '102', 'SQL Fundamentals', '2024-02-12', '3')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('3', '103', 'JavaScript', '2024-03-18', '3')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('3', '104', 'React Basics', '2024-04-22', '2')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('3', '105', 'Node.js', '2024-05-28', '3')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('4', '101', 'Python Basics', '2024-01-12', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('4', '108', 'Data Science', '2024-02-16', '5')
+insert into course_completions (user_id, course_id, course_name, completion_date, course_rating) values ('4', '109', 'Machine Learning', '2024-03-22', '5')
+
+SELECT * FROM course_completions
+
+
+with top_performer as(
+		Select   user_id, count(course_id) as courseCount, 
+				 cast( AVG(course_rating) as float) AS avgRating
+		From course_completions 
+		Group by user_id
+		having count(*) >=5 
+	),
+	seq_order as (
+		SELECT c.user_id, t.courseCount, c.course_name as first_course, Lead(course_name) over( Partition by c.user_id order by completion_date asc) as second_course
+		FROM course_completions c
+			Inner Join top_performer t	
+				on t.user_id = c.user_id
+		Where avgRating >= 4
+) 
+SELECT	 first_course, second_course, count(*)   as transition_count
+	
+FROM seq_order
+where second_course is not null
+group by first_course, second_course
+order by transition_count  desc, first_course asc, second_course asc
